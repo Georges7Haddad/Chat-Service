@@ -2,11 +2,10 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Aub.Eece503e.ChatService.Client;
-using Aub.Eece503e.ChatService.DataContracts;
 using Xunit;
 namespace Aub.Eece503e.ChatService.Web.IntegrationTests
 {
@@ -41,10 +40,45 @@ namespace Aub.Eece503e.ChatService.Web.IntegrationTests
             var bytes = Encoding.UTF8.GetBytes(str);
             var stream = new MemoryStream(bytes);
             var uploadImageResponse = await _chatServiceClient.UploadImage(stream);
-            // _profilePicturesToCleanup.Add(uploadImageResponse.ImageId);
+            
+            _profilePicturesToCleanup.Add(uploadImageResponse.ImageId);
+            
             var fetchedProfilePicture = await _chatServiceClient.DownloadImage(uploadImageResponse.ImageId);
             var imageString = Encoding.UTF8.GetString(fetchedProfilePicture.Image);
             Assert.Equal(str,imageString);
+        }
+
+        [Fact]
+        public async Task DeleteImage()
+        {
+            string str = Guid.NewGuid().ToString();
+            var bytes = Encoding.UTF8.GetBytes(str);
+            var stream = new MemoryStream(bytes);
+            var uploadImageResponse = await _chatServiceClient.UploadImage(stream);
+
+            await _chatServiceClient.DeleteImage(uploadImageResponse.ImageId);
+            
+            var exception = await Assert.ThrowsAsync<ChatServiceException>(()
+                => _chatServiceClient.DownloadImage(uploadImageResponse.ImageId));
+            Assert.Equal(HttpStatusCode.NotFound, exception.StatusCode);
+        }
+        
+        [Fact]
+        public async Task DownloadNonExistingImage()
+        {
+            string str = Guid.NewGuid().ToString();
+            var exception = await Assert.ThrowsAsync<ChatServiceException>(()
+                => _chatServiceClient.DownloadImage(str));
+            Assert.Equal(HttpStatusCode.NotFound, exception.StatusCode);
+        }
+        
+        [Fact]
+        public async Task DeleteNonExistingImage()
+        {
+            string str = Guid.NewGuid().ToString();
+            var exception = await Assert.ThrowsAsync<ChatServiceException>(()
+                => _chatServiceClient.DeleteImage(str));
+            Assert.Equal(HttpStatusCode.NotFound, exception.StatusCode);
         }
     }
 }

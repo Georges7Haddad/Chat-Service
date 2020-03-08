@@ -7,7 +7,6 @@ using Aub.Eece503e.ChatService.Web.Store.Exceptions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Microsoft.WindowsAzure.Storage;
 
 namespace Aub.Eece503e.ChatService.Web.Controllers
 {
@@ -32,7 +31,7 @@ namespace Aub.Eece503e.ChatService.Web.Controllers
                 byte[] bytes = await _imagesStore.DownloadImage(id);
                 return new FileContentResult(bytes, "application/octet-stream");
             }
-            catch (ProfileNotFoundException e)
+            catch (ProfilePictureNotFoundException e)
             {
                 return NotFound($"Image with id {id} was not found");
             }
@@ -83,10 +82,10 @@ namespace Aub.Eece503e.ChatService.Web.Controllers
         {
             try
             {
-                await _imagesStore.DownloadImage(id);
+                await _imagesStore.DeleteImage(id);
                 return Ok();
             }
-            catch (ProfileNotFoundException e)
+            catch (ProfilePictureNotFoundException e)
             {
                 return NotFound($"Image with id {id} was not found");
             }

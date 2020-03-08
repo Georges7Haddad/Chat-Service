@@ -1,13 +1,10 @@
 using System;
 using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
+using Aub.Eece503e.ChatService.Web.Store.Exceptions;
 using Microsoft.Extensions.Options;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
-using Microsoft.WindowsAzure.Storage.Blob.Protocol;
 
 namespace Aub.Eece503e.ChatService.Web.Store.Azure
 {
@@ -19,18 +16,18 @@ namespace Aub.Eece503e.ChatService.Web.Store.Azure
         {
             var storageAccount = CloudStorageAccount.Parse(Environment.GetEnvironmentVariable("ConnectionString"));
             CloudBlobClient cloudBlobClient = storageAccount.CreateCloudBlobClient(); 
-            _profilePicturesContainer = cloudBlobClient.GetContainerReference("ProfilePictures"); 
+            _profilePicturesContainer = cloudBlobClient.GetContainerReference(options.Value.ProfilePictureContainerName); 
             _profilePicturesContainer.CreateAsync();
-
-            }
-        public async Task<string> UploadImage(byte[] stream)
+        }
+        public async Task<string> UploadImage(byte[] imageBytes)
         {
             try
             {
-                var imageid = Guid.NewGuid().ToString();
-                CloudBlockBlob cloudBlockBlob = _profilePicturesContainer.GetBlockBlobReference(imageid);
-                await cloudBlockBlob.UploadFromFileAsync(stream.ToString());
-                return imageid;
+                var imageId = Guid.NewGuid().ToString();
+                CloudBlockBlob cloudBlockBlob = _profilePicturesContainer.GetBlockBlobReference(imageId);
+                var imageStream = new MemoryStream(imageBytes);
+                await cloudBlockBlob.UploadFromStreamAsync(imageStream);
+                return imageId;
             }
             catch (StorageException e)
             {
@@ -40,17 +37,37 @@ namespace Aub.Eece503e.ChatService.Web.Store.Azure
 
         public async Task<byte[]> DownloadImage(string imageId)
         {
-            CloudBlockBlob cloudBlockBlob = _profilePicturesContainer.GetBlockBlobReference(imageId);
-            long imageByteArrayLenght = cloudBlockBlob.Properties.Length;
-            byte[] imageByteArray = new byte[imageByteArrayLenght];
-            await cloudBlockBlob.DownloadToByteArrayAsync(imageByteArray,0 );
-            return imageByteArray;
+            try
+            {
+                CloudBlockBlob cloudBlockBlob = _profilePicturesContainer.GetBlockBlobReference(imageId);
+                
+                if(!await cloudBlockBlob.ExistsAsync())
+                    throw new ProfilePictureNotFoundException("Profile Picture not found");
+
+                var imageByteLength = cloudBlockBlob.Properties.Length;
+                var imageBytes = new byte[imageByteLength];
+                await cloudBlockBlob.DownloadToByteArrayAsync(imageBytes, 0);
+                return imageBytes;
+            }
+            catch (StorageException e)
+            { 
+                throw new StorageException("Could not read from azure blob", e);
+            }
         }
 
         public async Task DeleteImage(string imageId)
         {
-            CloudBlockBlob cloudBlockBlob = _profilePicturesContainer.GetBlockBlobReference(imageId);
-            await cloudBlockBlob.DeleteAsync();
+            try
+            {
+                CloudBlockBlob cloudBlockBlob = _profilePicturesContainer.GetBlockBlobReference(imageId);
+                if(!await cloudBlockBlob.ExistsAsync())
+                    throw new ProfilePictureNotFoundException("Profile Picture not found");
+                await cloudBlockBlob.DeleteAsync();
+            }
+            catch (StorageException e)
+            {
+                throw new StorageException("Could not delete from blob", e);
+            }
         }
     }
 }
