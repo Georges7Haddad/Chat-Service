@@ -14,10 +14,9 @@ namespace Aub.Eece503e.ChatService.Web.Store.Azure
 
         public AzureTableProfileStore(IOptions<AzureStorageSettings> options)
         {
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(Environment.GetEnvironmentVariable("ConnectionString"));
+            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(options.Value.ConnectionString);
             CloudTableClient tableClient = storageAccount.CreateCloudTableClient(); 
             _profileTable = tableClient.GetTableReference(options.Value.ProfilesTableName);
-            
         }
 
         public static ProfileTableEntity ToEntity(UserProfile userProfile)
