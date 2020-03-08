@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+  </PropertyGroup>
+  
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aub.Eece503e.ChatService.Datacontracts\Aub.Eece503e.ChatService.Datacontracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeCoverage" Version="16.5.0" />
+    <PackageReference Include="WindowsAzure.Storage" Version="9.3.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Store\Azure\ProfilePictureBlobBlock.cs" />
+  </ItemGroup>
+</Project>
