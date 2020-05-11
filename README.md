@@ -33,6 +33,8 @@ Integration tests are used to check that each API is working correctly and catch
 
 In the unit tests, I mocked a nonfunctional database to test some more exceptions.
 
+I also have deployment tests that run on the development environment before deploying to production.
+
 ## Features
 
  - I implemented a middleware to catch all exceptions.
