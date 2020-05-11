@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Aub.Eece503e.ChatService.Web.Controllers;
 using Microsoft.Extensions.Logging;
 
@@ -11,7 +12,7 @@ namespace Aub.Eece503e.ChatService.Web.Tests
 
         public IDisposable BeginScope<TState>(TState state)
         {
-            throw new NotImplementedException();
+            return new MemoryStream();
         }
 
         public bool IsEnabled(LogLevel logLevel)

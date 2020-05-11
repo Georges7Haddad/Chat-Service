@@ -1,14 +1,14 @@
-using System;
 using System.IO;
-using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using Aub.Eece503e.ChatService.Web.Controllers;
+using Aub.Eece503e.ChatService.Client;
 using Aub.Eece503e.ChatService.Web.Store;
 using Aub.Eece503e.ChatService.Web.Store.Exceptions;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
 
@@ -16,98 +16,59 @@ namespace Aub.Eece503e.ChatService.Web.Tests
 {
     public class ImagesControllerTests
     {
-        private readonly Mock<IImagesStore> _profilePicturesStoreMock = new Mock<IImagesStore>();
+        private static Mock<IImagesStore> imageStoreMock = new Mock<IImagesStore>();
 
+        static TestServer testServer = new TestServer(
+            Program.CreateWebHostBuilder(new string[] { })
+                .ConfigureTestServices(services =>
+                {
+                    services.AddSingleton(imageStoreMock.Object);
+                }).UseEnvironment("Development"));
+
+        static HttpClient httpClient = testServer.CreateClient();
+        static ChatServiceClient chatServiceClient = new ChatServiceClient(httpClient);
+        
         private readonly string _imageId = "Test";
         private readonly byte[] _imageBytes = Encoding.UTF8.GetBytes("test");
-
         
-        [Fact]
-        public async Task DownloadProfilePictureReturns503WhenStorageIsDown()
+        [Theory]
+        [InlineData(HttpStatusCode.ServiceUnavailable)]
+        [InlineData(HttpStatusCode.InternalServerError)]
+        [InlineData(HttpStatusCode.TooManyRequests)]
+        [InlineData(HttpStatusCode.Conflict)]
+        public async Task ImageControllerUploadImageStatusCodeOnStorageErrors(HttpStatusCode statusCode)
         {
-            _profilePicturesStoreMock.Setup(store => store.DownloadImage(_imageId))
-                .ThrowsAsync(new StorageErrorException());
-
-            var controller = new ImagesController(Mock.Of<ILogger<ImagesController>>(), _profilePicturesStoreMock.Object);
-
-            var result = await controller.DownloadImage(_imageId);
-            AssertUtils.HasStatusCode(HttpStatusCode.ServiceUnavailable, result);
-        }
-
-        [Fact]
-        public async Task DownloadProfilePictureReturns500WhenExceptionIsNotKnown()
-        {
-            _profilePicturesStoreMock.Setup(store => store.DownloadImage(_imageId))
-                .ThrowsAsync(new Exception("Test Exception"));
-            var loggerStub = new ImagesControllerLoggerStub();
-
-            var controller = new ImagesController(loggerStub, _profilePicturesStoreMock.Object);
-
-            var result = await controller.DownloadImage(_imageId);
-            AssertUtils.HasStatusCode(HttpStatusCode.InternalServerError, result);
-
-            Assert.Contains(LogLevel.Error, loggerStub.LogEntries.Select(entry => entry.Level));
-        }
-
-        [Fact]
-        public async Task UploadProfilePictureReturns503WhenStorageIsDown()
-        {
+            imageStoreMock.Setup(store => store.UploadImage(_imageBytes))
+                .ThrowsAsync(new StorageErrorException("Test Exception", (int)statusCode));
             var stream = new MemoryStream(_imageBytes);
-            IFormFile file = new FormFile(stream, 0, _imageBytes.Length,"file", "image");
-            
-            
-            _profilePicturesStoreMock.Setup(store => store.UploadImage(_imageBytes))
-                .ThrowsAsync(new StorageErrorException());
-        
-            var controller = new ImagesController(Mock.Of<ILogger<ImagesController>>(), _profilePicturesStoreMock.Object);
-            
-            var result = await controller.UploadImage(file);
-            AssertUtils.HasStatusCode(HttpStatusCode.ServiceUnavailable, result);
-        }
-        
-        [Fact]
-        public async Task UploadProfilePictureReturns500WhenExceptionIsNotKnown()
-        {
-            var stream = new MemoryStream(_imageBytes);
-            IFormFile file = new FormFile(stream, 0, _imageBytes.Length,"file", "image");
-            
-            _profilePicturesStoreMock.Setup(store => store.UploadImage(_imageBytes))
-                .ThrowsAsync(new Exception("Test Exception"));
-            var loggerStub = new ImagesControllerLoggerStub();
-        
-            var controller = new ImagesController(loggerStub, _profilePicturesStoreMock.Object);
-
-            var result = await controller.UploadImage(file);
-            AssertUtils.HasStatusCode(HttpStatusCode.InternalServerError, result);
-        
-            Assert.Contains(LogLevel.Error, loggerStub.LogEntries.Select(entry => entry.Level));
-        }
-        
-        [Fact]
-        public async Task DeleteProfilePictureReturns503WhenStorageIsDown()
-        {
-            _profilePicturesStoreMock.Setup(store => store.DeleteImage(_imageId))
-                .ThrowsAsync(new StorageErrorException());
-
-            var controller = new ImagesController(Mock.Of<ILogger<ImagesController>>(), _profilePicturesStoreMock.Object);
-
-            var result = await controller.DeleteImage(_imageId);
-            AssertUtils.HasStatusCode(HttpStatusCode.ServiceUnavailable, result);
+            ChatServiceException e = await Assert.ThrowsAsync<ChatServiceException>(() => chatServiceClient.UploadImage(stream));
+            Assert.Equal(statusCode, e.StatusCode);
         }
 
-        [Fact]
-        public async Task DeleteProfilePictureReturns500WhenExceptionIsNotKnown()
+        [Theory]
+        [InlineData(HttpStatusCode.ServiceUnavailable)]
+        [InlineData(HttpStatusCode.InternalServerError)]
+        [InlineData(HttpStatusCode.TooManyRequests)]
+        [InlineData(HttpStatusCode.Conflict)]
+        public async Task ImageControllerDownloadImageStatusCodeOnStorageErrors(HttpStatusCode statusCode)
         {
-            _profilePicturesStoreMock.Setup(store => store.DeleteImage(_imageId))
-                .ThrowsAsync(new Exception("Test Exception"));
-            var loggerStub = new ImagesControllerLoggerStub();
-
-            var controller = new ImagesController(loggerStub, _profilePicturesStoreMock.Object);
-
-            var result = await controller.DeleteImage(_imageId);
-            AssertUtils.HasStatusCode(HttpStatusCode.InternalServerError, result);
-
-            Assert.Contains(LogLevel.Error, loggerStub.LogEntries.Select(entry => entry.Level));
+            imageStoreMock.Setup(store => store.DownloadImage(_imageId))
+                .ThrowsAsync(new StorageErrorException("Test Exception", (int) statusCode));
+            ChatServiceException e = await Assert.ThrowsAsync<ChatServiceException>(() => chatServiceClient.DownloadImage(_imageId));
+            Assert.Equal(statusCode, e.StatusCode);
+        }
+        
+        [Theory]
+        [InlineData(HttpStatusCode.ServiceUnavailable)]
+        [InlineData(HttpStatusCode.InternalServerError)]
+        [InlineData(HttpStatusCode.TooManyRequests)]
+        [InlineData(HttpStatusCode.Conflict)]
+        public async Task ImageControllerDeleteImageStatusCodeOnStorageErrors(HttpStatusCode statusCode)
+        {
+            imageStoreMock.Setup(store => store.DeleteImage(_imageId))
+                .ThrowsAsync(new StorageErrorException("Test Exception", (int)statusCode));
+            ChatServiceException e = await Assert.ThrowsAsync<ChatServiceException>(() => chatServiceClient.DeleteImage(_imageId));
+            Assert.Equal(statusCode, e.StatusCode);
         }
     }
 }

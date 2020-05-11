@@ -4,5 +4,6 @@ namespace Aub.Eece503e.ChatService.DataContracts
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
+        public string ProfilePictureId { get; set; }
     }
 }

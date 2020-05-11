@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
@@ -9,15 +9,15 @@ using Xunit;
 
 namespace Aub.Eece503e.ChatService.Web.IntegrationTests
 {
-    public class ProfileControllerIntegrationTests : IClassFixture<IntegrationTestsFixture>, IAsyncLifetime
+    public abstract class ProfileControllerEndToEndTests<TFixture> : IClassFixture<TFixture>, IAsyncLifetime where TFixture : class, IEndToEndTestsFixture
     {
         private readonly IChatServiceClient _chatServiceClient;
 
         private readonly ConcurrentBag<UserProfile> _profilesToCleanup = new ConcurrentBag<UserProfile>();
 
-        public ProfileControllerIntegrationTests(IntegrationTestsFixture integrationTestsFixture)
+        public ProfileControllerEndToEndTests(TFixture tfixture)
         {
-            _chatServiceClient = integrationTestsFixture.ChatServiceClient;
+            _chatServiceClient = tfixture.ChatServiceClient;
         }
 
         public Task InitializeAsync()
@@ -42,25 +42,25 @@ namespace Aub.Eece503e.ChatService.Web.IntegrationTests
         public async Task PostGetProfile()
         {
             var profilePictureId = CreateRandomUsername();
-            var profile = new UserProfile {Username = CreateRandomUsername(), FirstName = "Georges", LastName = "Haddad", ProfilePictureId = profilePictureId};
+            var profile = new UserProfile { Username = CreateRandomUsername(), FirstName = "Georges", LastName = "Haddad", ProfilePictureId = profilePictureId };
             await _chatServiceClient.AddProfile(profile);
             _profilesToCleanup.Add(profile);
 
             var fetchedProfile = await _chatServiceClient.GetProfile(profile.Username);
             Assert.Equal(profile, fetchedProfile);
         }
-        
+
         [Fact]
         public async Task UpdateProfile()
         {
             var username = CreateRandomUsername();
-            var profile = new UserProfile {Username = username, FirstName = "Georges", LastName = "Haddad"};
+            var profile = new UserProfile { Username = username, FirstName = "Georges", LastName = "Haddad", ProfilePictureId = "georgesimage" };
             await _chatServiceClient.AddProfile(profile);
             _profilesToCleanup.Add(profile);
-            
-            var expectedProfile = new UserProfile {Username = username, FirstName = "Kamil", LastName = "Nader"};
+
+            var expectedProfile = new UserProfile { Username = username, FirstName = "Kamil", LastName = "Nader", ProfilePictureId = "kamilimage" };
             await _chatServiceClient.UpdateProfile(expectedProfile);
-            
+
             var updatedProfile = await _chatServiceClient.GetProfile(username);
             Assert.Equal(expectedProfile, updatedProfile);
         }
@@ -69,7 +69,7 @@ namespace Aub.Eece503e.ChatService.Web.IntegrationTests
         public async Task DeleteProfile()
         {
             var username = CreateRandomUsername();
-            var profile = new UserProfile {Username = username, FirstName = "Georges", LastName = "Haddad"};
+            var profile = new UserProfile { Username = username, FirstName = "Georges", LastName = "Haddad" };
             await _chatServiceClient.AddProfile(profile);
 
             await _chatServiceClient.DeleteProfile(profile.Username);
@@ -90,7 +90,7 @@ namespace Aub.Eece503e.ChatService.Web.IntegrationTests
         [Fact]
         public async Task UpdateNonExistingProfile()
         {
-            var profile = new UserProfile {Username = CreateRandomUsername(), FirstName = "telbi", LastName = "bass"};
+            var profile = new UserProfile { Username = CreateRandomUsername(), FirstName = "davie", LastName = "bass" };
             var exception = await Assert.ThrowsAsync<ChatServiceException>(()
                 => _chatServiceClient.UpdateProfile(profile));
             Assert.Equal(HttpStatusCode.NotFound, exception.StatusCode);
@@ -100,7 +100,7 @@ namespace Aub.Eece503e.ChatService.Web.IntegrationTests
         public async Task AddExistingProfile()
         {
             var username = CreateRandomUsername();
-            var profile = new UserProfile {Username = username, FirstName = "Kerbi", LastName = "yes"};
+            var profile = new UserProfile { Username = username, FirstName = "Kerbi", LastName = "yes" };
             await _chatServiceClient.AddProfile(profile);
             _profilesToCleanup.Add(profile);
 
@@ -130,7 +130,7 @@ namespace Aub.Eece503e.ChatService.Web.IntegrationTests
         [InlineData("Yok", "Wem", " ")]
         public async Task PostInvalidProfile(string username, string firstName, string lastName)
         {
-            var profile = new UserProfile {Username = username, FirstName = firstName, LastName = lastName};
+            var profile = new UserProfile { Username = username, FirstName = firstName, LastName = lastName };
 
             var exception = await Assert.ThrowsAsync<ChatServiceException>(() => _chatServiceClient.AddProfile(profile));
             Assert.Equal(HttpStatusCode.BadRequest, exception.StatusCode);
@@ -146,11 +146,11 @@ namespace Aub.Eece503e.ChatService.Web.IntegrationTests
         public async Task PutInvalidProfile(string firstname, string lastname)
         {
             var username = CreateRandomUsername();
-            var profile = new UserProfile {Username = username, FirstName = "First", LastName = "Last"};
+            var profile = new UserProfile { Username = username, FirstName = "First", LastName = "Last" };
             await _chatServiceClient.AddProfile(profile);
             _profilesToCleanup.Add(profile);
 
-            var updatedProfile = new UserProfile {Username = username, FirstName = firstname, LastName = lastname};
+            var updatedProfile = new UserProfile { Username = username, FirstName = firstname, LastName = lastname };
             var exception =
                 await Assert.ThrowsAsync<ChatServiceException>(() => _chatServiceClient.UpdateProfile(updatedProfile));
             Assert.Equal(HttpStatusCode.BadRequest, exception.StatusCode);

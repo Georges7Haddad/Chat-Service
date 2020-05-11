@@ -14,7 +14,7 @@ namespace Aub.Eece503e.ChatService.Web.Store.Azure
 
         public AzureTableProfileStore(IOptions<AzureStorageSettings> options)
         {
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(options.Value.ConnectionString);
+            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(Environment.GetEnvironmentVariable("ConnectionString"));
             CloudTableClient tableClient = storageAccount.CreateCloudTableClient(); 
             _profileTable = tableClient.GetTableReference(options.Value.ProfilesTableName);
         }
@@ -90,6 +90,7 @@ namespace Aub.Eece503e.ChatService.Web.Store.Azure
             var retrieveProfileEntity = await RetrieveProfileEntity(profile.Username);
             retrieveProfileEntity.FirstName = profile.FirstName;
             retrieveProfileEntity.LastName = profile.LastName;
+            retrieveProfileEntity.ProfilePictureId = profile.ProfilePictureId;
             TableOperation updateOperation = TableOperation.Replace(retrieveProfileEntity);
 
             try

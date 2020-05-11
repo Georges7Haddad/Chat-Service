@@ -13,5 +13,15 @@ namespace Aub.Eece503e.ChatService.Client
         Task<UploadImageResponse> UploadImage(Stream stream);
         Task<DownloadImageResponse> DownloadImage(string imageId);
         Task DeleteImage(string imageId);
+        Task AddMessage(string conversationId, AddMessageRequestBody addMessageRequestBody);
+        Task<GetMessagesResponse> GetMessages(string conversationId, int limit, long lastSeenMessageTime);
+        Task<GetMessagesResponse> GetMessagesByUri(string uri);
+        Task<Message> GetMessage(string conversationId, string messageId);
+        Task DeleteMessage(string conversationId, string messageId);
+        Task AddConversation(AddConversationRequestBody addConversationRequestBody);
+        Task<GetConversationsResponse> GetConversations(string username, int limit, long lastSeenConversationTime);
+        Task<GetConversationsResponse> GetConversationsByUri(string uri);
+        Task<Conversation> GetConversation(string conversationId);
+        Task DeleteConversation(string username, string conversationId);
     }
 }

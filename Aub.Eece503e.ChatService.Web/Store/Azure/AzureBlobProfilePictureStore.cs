@@ -14,10 +14,9 @@ namespace Aub.Eece503e.ChatService.Web.Store.Azure
         
         public AzureBlobProfilePictureStore(IOptions<AzureStorageSettings> options)
         {
-            var storageAccount = CloudStorageAccount.Parse(options.Value.ConnectionString);
+            var storageAccount = CloudStorageAccount.Parse(Environment.GetEnvironmentVariable("ConnectionString"));
             CloudBlobClient cloudBlobClient = storageAccount.CreateCloudBlobClient(); 
-            _profilePicturesContainer = cloudBlobClient.GetContainerReference(options.Value.ProfilePictureContainerName); 
-            _profilePicturesContainer.CreateAsync();
+            _profilePicturesContainer = cloudBlobClient.GetContainerReference(options.Value.ProfilePictureContainerName);
         }
         public async Task<string> UploadImage(byte[] imageBytes)
         {

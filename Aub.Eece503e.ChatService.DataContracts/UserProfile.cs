@@ -18,6 +18,15 @@ namespace Aub.Eece503e.ChatService.DataContracts
                    LastName == profile.LastName && 
                    ProfilePictureId == profile.ProfilePictureId;
         }
+        public override int GetHashCode()
+        {
+            var hashCode = -256925990;
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(Username);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(FirstName);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(LastName);
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(ProfilePictureId);
+            return hashCode;
+        }
     }
     
 }
