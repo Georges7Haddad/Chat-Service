@@ -1,20 +1,55 @@
-# Introduction 
-TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project. 
+﻿
+#  Chat Service
 
-# Getting Started
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
-1.	Installation process
-2.	Software dependencies
-3.	Latest releases
-4.	API references
+I implemented a chat web service using ASP.NET CORE. It's a copy of the actual code, which is on Azure Repos, where I use CI/CD pipeline. All APIs are Async and most of them are RESTful. The project was deployed on an azure web app.
 
-# Build and Test
-TODO: Describe and show how to build your code and run the tests. 
+##  Controllers
 
-# Contribute
-TODO: Explain how other users and developers can contribute to make your code better. 
+**Profile Controller** which implements the Get User Profile, Post User Profile, Put User Profile and Delete User Profile APIs. I also have a function to validate the user's input when adding a profile or updating it.
 
-If you want to learn more about creating good readme files then refer the following [guidelines](https://docs.microsoft.com/en-us/azure/devops/repos/git/create-a-readme?view=azure-devops). You can also seek inspiration from the below readme files:
-- [ASP.NET Core](https://github.com/aspnet/Home)
-- [Visual Studio Code](https://github.com/Microsoft/vscode)
-- [Chakra Core](https://github.com/Microsoft/ChakraCore)
+**Image Controller** which implements the Get Profile Picture, Post Profile Picture, and Delete Profile Picture APIs.
+
+**Conversation Controller** which implements all APIs related to conversations and messages like adding new messages or conversations and listing them. 
+
+  ## Services
+ I implemented a service layer for each controller to seperate handling http request from store calls.
+ This layer takes care of all business logic. 
+
+##  Stores
+
+**Profile Store** which implements the get, add, update and delete functions that communicate with the azure table.
+
+**Image Store**, which implements the download and upload functions that communicate with the blob storage.
+
+**Conversation Store**, which implements the get, add, update and list conversations functions that communicate with CosmosDB(DocumentDB).
+
+**Message Store**, which implements the get, add, update and list conversations functions that communicate with CosmosDB(DocumentDB).
+
+##  Testing
+
+An essential aspect of this project is Testing. I've created a client that calls all APIs and implemented integration and unit tests to cover all the project.
+
+Integration tests are used to check that each API is working correctly and catching exceptions properly, like adding a user with an already used username.
+
+In the unit tests, I mocked a nonfunctional database to test some more exceptions.
+
+## Features
+
+ - I implemented a middleware to catch all exceptions.
+ 
+ - Each message gets a unique Id, so in case a message was added but the
+   client app retried because of an error, the message will only be
+   added once. This way, the message will not appear twice in the
+   conversation.
+ - There is a last seen message time and last seen conversation time so
+   when fetching messages or conversations we just need to get the ones
+   that have a time bigger than the last seen.
+ - Listing conversations and messages also supports paging to get older
+   messages/conversations.
+ - Adding a message updates a conversation's time. In case the client
+   app retries to add the same message, the conversation will get the
+   first message's time.
+ - I also handle the failing scenario where creating a new conversation
+   fails to add the conversation to one of the users and succeeds to add
+   it to the other.
+
