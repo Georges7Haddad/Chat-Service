@@ -17,7 +17,7 @@ I implemented a chat web service using ASP.NET CORE. It's a copy of the actual c
 
 ##  Stores
 
-**Profile Store** which implements the get, add, update and delete functions that communicate with the azure table.
+**Profile Store**, which implements the get, add, update and delete functions that communicate with the azure table.
 
 **Image Store**, which implements the download and upload functions that communicate with the blob storage.
 
